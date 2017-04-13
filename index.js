@@ -70,9 +70,10 @@ app.post('/', upload.any(), function (req, res) {
     console.log('[' + new Date() + '] - File uploaded:', req.files[i].path)
     i++
   }
+    // it should check hash here
   res.end()
 })
 
 http.createServer(app).listen(httpPort, host, function () {
-  console.log('[' + new Date() + '] - HTTP File Upload Server started on ' + host + ':' + httpPort)
+  console.log('[' + new Date() + '] - Torrero! Upload Server started on ' + host + ':' + httpPort)
 })
