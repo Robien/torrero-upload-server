@@ -19,25 +19,30 @@ var storage = multer.diskStorage(
     destination: function (req, file, cb) {
       var fieldName = 'file'
       var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
-      var hash = fileName.split('-')[0]
+
+      var hash = req.body['hash']
+
       if (hash && hash.length === 40) {
         var path = folder + '/' + hash
-        if (fs.existsSync(path)) {
+        if (fs.existsSync(path + '/' + fileName)) {
           cb('File already uploaded!')
         } else {
-          fs.mkdirSync(path)
+          if (!fs.existsSync(path)) {
+            fs.mkdirSync(path)
+          }
+
           cb(null, path)
         }
       } else {
-        cb('Wrong file format')
+        cb('You should specify data\'s hash')
       }
     },
     filename: function (req, file, cb) {
       var fieldName = 'file'
       var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
-      var finalFileName = fileName.split('-')[1]
-      if (finalFileName) {
-        cb(null, finalFileName)
+
+      if (fileName) {
+        cb(null, fileName)
       } else {
         cb('Wrong file format')
       }
@@ -56,7 +61,7 @@ app.use(function (req, res, next) {
 })
 
 app.get('/', function (req, res) {
-  res.send('<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="file" name="file">\n  <input type="submit" value="Upload File">\n</form>\n')
+  res.send('<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n')
 })
 
 app.post('/', upload.any(), function (req, res) {
