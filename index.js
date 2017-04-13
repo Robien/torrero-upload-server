@@ -65,7 +65,11 @@ app.get('/', function (req, res) {
 })
 
 app.post('/', upload.any(), function (req, res) {
-  console.log('[' + new Date() + '] - File uploaded:', req.files[0].path)
+  var i = 0
+  while (req.files[i]) {
+    console.log('[' + new Date() + '] - File uploaded:', req.files[i].path)
+    i++
+  }
   res.end()
 })
 
