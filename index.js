@@ -21,13 +21,17 @@ var storage = multer.diskStorage(
       var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
 
       var hash = req.body['hash']
+      var name = req.body['name']
 
-      if (hash && hash.length === 40) {
-        var path = folder + '/' + hash
+      if (hash && hash.length === 40 && name) {
+        var path = folder + '/' + hash + '/' + name
         if (fs.existsSync(path + '/' + fileName)) {
           cb('File already uploaded!')
         } else {
           if (!fs.existsSync(path)) {
+            if (!fs.existsSync(folder + '/' + hash)) {
+              fs.mkdirSync(folder + '/' + hash)
+            }
             fs.mkdirSync(path)
           }
 
@@ -61,7 +65,7 @@ app.use(function (req, res, next) {
 })
 
 app.get('/', function (req, res) {
-  res.send('<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n')
+  res.send('<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="name" value="a">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n')
 })
 
 app.post('/', upload.any(), function (req, res) {
