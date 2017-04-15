@@ -57,7 +57,9 @@ var storage = multer.diskStorage(
       var fieldName = 'file'
       var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
 
-      if (fileName) {
+      if (req.body['label']) {
+        cb(null, 'video.mp4')
+      } else if (fileName) {
         cb(null, fileName)
       } else {
         cb('Wrong file format')
