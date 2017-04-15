@@ -23,34 +23,40 @@ var storage = multer.diskStorage(
       var hash = req.body['hash']
       var name = req.body['name']
       var label = req.body['label']
+      if (!hash || hash.length !== 40) {
+        return cb('You should specify data\'s hash')
+      }
+      if (!label && !name) {
+        return cb('You should specify at least one name or one label')
+      }
+
+      var path = folder + '/' + hash + '/'
 
         // label is set if it's a media and not a manifest
       if (label) {
-        label = '/' + label
-      } else {
-        label = ''
-      }
-
-      if (hash && hash.length === 40 && name) {
-        var path = folder + '/' + hash + label + '/' + name
-        if (fs.existsSync(path + '/' + fileName)) {
-          cb('File already uploaded!')
-        } else {
-          if (!fs.existsSync(path)) {
-            if (!fs.existsSync(folder + '/' + hash)) {
-              fs.mkdirSync(folder + '/' + hash)
-
-              if (label && !fs.existsSync(folder + '/' + hash + label)) {
-                fs.mkdirSync(folder + '/' + hash + label)
-              }
-            }
-            fs.mkdirSync(path)
-          }
-
-          cb(null, path)
+        path += label
+        if (fs.existsSync(path + '/video.mp4')) {
+          return cb('File already uploaded!')
         }
+        if (!fs.existsSync(path)) {
+          if (!fs.existsSync(folder + '/' + hash)) {
+            fs.mkdirSync(folder + '/' + hash)
+          }
+          fs.mkdirSync(path)
+        }
+        return cb(null, path)
       } else {
-        cb('You should specify data\'s hash')
+        path += name
+        if (fs.existsSync(path + '/' + fileName)) {
+          return cb('File already uploaded!')
+        }
+        if (!fs.existsSync(path)) {
+          if (!fs.existsSync(folder + '/' + hash)) {
+            fs.mkdirSync(folder + '/' + hash)
+          }
+          fs.mkdirSync(path)
+        }
+        return cb(null, path)
       }
     },
     filename: function (req, file, cb) {
