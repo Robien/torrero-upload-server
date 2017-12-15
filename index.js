@@ -46,7 +46,9 @@ var storage = multer.diskStorage(
         }
         return cb(null, path)
       } else {
-        path += name
+	if (fileName != 'manifest.torrent') {
+          path += name
+	}
         if (fs.existsSync(path + '/' + fileName)) {
           return cb('File already uploaded!')
         }
