@@ -10,6 +10,9 @@ var express = require('express')
 var multer = require('multer')
 var app = express()
 
+var ipfsAPI = require('ipfs-api')
+var ipfs = ipfsAPI('/ip4/172.17.0.2/tcp/9095')
+
 if (!fs.existsSync(folder)) {
   fs.mkdirSync(folder)
 }
@@ -90,14 +93,58 @@ app.get('/', function (req, res) {
   res.send('<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="name" value="a">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="name" value="a">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="text" name="label">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n')
 })
 
+function addToIPFS(path, cb)
+{
+	fs.readFile(path, function(err, content) {  
+		if (err) return cb(err)
+		ipfs.files.add([{path:path, content:content}], function (err, resIPFS) {
+			if (err)
+			{
+				return cb(err)
+			}
+			cb(null, resIPFS[0].hash)
+		})
+	})
+
+}
+
+function createIPFSReply(path, name, cb)
+{
+	addToIPFS(path, function(err, hash) {
+		if (err) return cb(err)
+		console.log(name + " ipfs id = " + hash)
+		cb(null, {name: name, hash: hash})
+	})
+
+}
+
+function createIPFSReplyForAll(files, cb)
+{
+	var i = 0
+	var ipfsIDs = []
+	while (files[i]) {
+		var path = files[i].path
+		var name = files[i].originalname
+		createIPFSReply(path, name, function(err, data) {
+			if (err) return cb(err)
+			ipfsIDs[ipfsIDs.length] = data
+			if (ipfsIDs.length === files.length) {
+				cb(null, JSON.stringify(ipfsIDs))
+			}
+		})
+		console.log('[' + new Date() + '] - File uploaded:', path)
+		i++
+	}
+}
+
 app.post('/', upload.any(), function (req, res) {
-  var i = 0
-  while (req.files[i]) {
-    console.log('[' + new Date() + '] - File uploaded:', req.files[i].path)
-    i++
-  }
-    // it should check hash here
-  res.end()
+	createIPFSReplyForAll(req.files, function (err, data)
+		{
+			if (err) console.log(err)
+			res.send(data)
+			res.end()
+		})
+	// it should check hash here
 })
 
 http.createServer(app).listen(httpPort, host, function () {
