@@ -17,71 +17,69 @@ if (!fs.existsSync(folder)) {
   fs.mkdirSync(folder)
 }
 
-var storage = multer.diskStorage(
-  {
-    destination: function (req, file, cb) {
-      var fieldName = 'file'
-      var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    var fieldName = 'file'
+    var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
 
-      var hash = req.body['hash']
-      var name = req.body['name']
-      var label = req.body['label']
-      if (!hash || hash.length !== 40) {
-        return cb('You should specify data\'s hash')
-      }
-      if (!label && !name) {
-        return cb('You should specify at least one name or one label')
-      }
+    var hash = req.body['hash']
+    var name = req.body['name']
+    var label = req.body['label']
+    if (!hash || hash.length !== 40) {
+      return cb('You should specify data\'s hash')
+    }
+    if (!label && !name) {
+      return cb('You should specify at least one name or one label')
+    }
 
-      var path = folder + '/' + hash + '/'
+    var path = folder + '/' + hash + '/'
 
         // label is set if it's a media and not a manifest
-      if (label) {
-        path += label
-        if (fs.existsSync(path + '/video.mp4')) {
-          return cb('File already uploaded!')
-        }
-        if (!fs.existsSync(path)) {
-          if (!fs.existsSync(folder + '/' + hash)) {
-            fs.mkdirSync(folder + '/' + hash)
-          }
-          fs.mkdirSync(path)
-        }
-        return cb(null, path)
-      } else {
-	if (fileName != 'manifest.torrent') {
-          path += name
-	}
-        if (fs.existsSync(path + '/' + fileName)) {
-          return cb('File already uploaded!')
-        }
-        if (!fs.existsSync(path)) {
-          if (!fs.existsSync(folder + '/' + hash)) {
-            fs.mkdirSync(folder + '/' + hash)
-          }
-          fs.mkdirSync(path)
-        }
-        return cb(null, path)
+    if (label) {
+      path += label
+      if (fs.existsSync(path + 'video.mp4')) {
+        return cb(path + 'video.mp4')
       }
-    },
-    filename: function (req, file, cb) {
-      var fieldName = 'file'
-      var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
-
-      if (req.body['label']) {
-        cb(null, 'video.mp4')
-      } else if (fileName) {
-        cb(null, fileName)
-      } else {
-        cb('Wrong file format')
+      if (!fs.existsSync(path)) {
+        if (!fs.existsSync(folder + '/' + hash)) {
+          fs.mkdirSync(folder + '/' + hash)
+        }
+        fs.mkdirSync(path)
       }
+      return cb(null, path)
+    } else {
+      if (fileName !== 'manifest.torrent') {
+        path += name
+      }
+      if (fs.existsSync(path + '/' + fileName)) {
+        return cb(path + '/' + fileName)
+      }
+      if (!fs.existsSync(path)) {
+        if (!fs.existsSync(folder + '/' + hash)) {
+          fs.mkdirSync(folder + '/' + hash)
+        }
+        fs.mkdirSync(path)
+      }
+      return cb(null, path)
     }
-  })
+  },
+  filename: function (req, file, cb) {
+    var fieldName = 'file'
+    var fileName = req.body[fieldName] ? req.body[fieldName] : file.originalname
 
-var upload = multer(
-  {
-    storage: storage
-  })
+    if (req.body['label']) {
+      cb(null, 'video.mp4')
+    } else if (fileName) {
+      cb(null, fileName)
+    } else {
+      cb('Wrong file format')
+    }
+  }
+})
+
+var upload = multer({
+  storage: storage
+})
 
 app.use(function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*')
@@ -93,58 +91,92 @@ app.get('/', function (req, res) {
   res.send('<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="name" value="a">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n<form action="/" method="POST" enctype="multipart/form-data">\n  <input type="text" name="name" value="a">\n  <input type="text" name="hash" value="1234567890123456789012345678901234567890">\n  <input type="text" name="label">\n  <input type="file" name="file" multiple>\n  <input type="submit" value="Upload File">\n </form>\n')
 })
 
-function addToIPFS(path, cb)
-{
-	fs.readFile(path, function(err, content) {  
-		if (err) return cb(err)
-		ipfs.files.add([{path:path, content:content}], function (err, resIPFS) {
-			if (err)
-			{
-				return cb(err)
-			}
-			cb(null, resIPFS[0].hash)
-		})
-	})
-
+function addToIPFS (path, cb) {
+  fs.readFile(path, function (err, content) {
+    if (err) return cb(err)
+    console.log('add path :' + path)
+    ipfs.files.add([{
+      path: path,
+      content: content
+    }], function (err, resIPFS) {
+      if (err) {
+        return cb(err)
+      }
+      console.log(JSON.stringify(resIPFS))
+      if (resIPFS.length === 0) {
+        return cb('IPFS null!')
+      }
+      cb(null, resIPFS[0].hash)
+    })
+  })
 }
 
-function createIPFSReply(path, name, cb)
-{
-	addToIPFS(path, function(err, hash) {
-		if (err) return cb(err)
-		console.log(name + " ipfs id = " + hash)
-		cb(null, {name: name, hash: hash})
-	})
-
+function createIPFSReply (path, name, cb) {
+  addToIPFS(path, function (err, hash) {
+    if (err) return cb(err)
+    console.log(name + ' ipfs id = ' + hash)
+    cb(null, {
+      name: name,
+      hash: hash
+    })
+  })
 }
 
-function createIPFSReplyForAll(files, cb)
-{
-	var i = 0
-	var ipfsIDs = []
-	while (files[i]) {
-		var path = files[i].path
-		var name = files[i].originalname
-		createIPFSReply(path, name, function(err, data) {
-			if (err) return cb(err)
-			ipfsIDs[ipfsIDs.length] = data
-			if (ipfsIDs.length === files.length) {
-				cb(null, JSON.stringify(ipfsIDs))
-			}
-		})
-		console.log('[' + new Date() + '] - File uploaded:', path)
-		i++
-	}
+function createIPFSReplyForAll (files, cb) {
+  if (!files || files.length === 0) {
+    return cb(null, 'pomme')
+  }
+  var i = 0
+  var rootPath = files[0].path
+  while (files[i]) {
+    var path = files[i].path
+    var name = files[i].originalname
+    if (name === 'manifest.torrent') {
+      rootPath = path.slice(0, path.length - 'manifest.torrent'.length)
+    }
+    console.log('[' + new Date() + '] - File uploaded:', path)
+    i++
+  }
+  ipfs.util.addFromFs(rootPath, {
+    recursive: true
+  }, function (err, resIPFS) {
+    if (err) return cb(err)
+    cb(null, JSON.stringify({
+      root: resIPFS[resIPFS.length - 1].hash
+    }))
+  })
 }
 
-app.post('/', upload.any(), function (req, res) {
-	createIPFSReplyForAll(req.files, function (err, data)
-		{
-			if (err) console.log(err)
-			res.send(data)
-			res.end()
-		})
-	// it should check hash here
+app.post('/', function (req, res) {
+  upload.any()(req, res, function (err) {
+    if (err && err[0] !== '/') {
+      console.log(err)
+      res.send(JSON.stringify(err))
+      res.end()
+      return
+    }
+    if (err && err[0] === '/') {
+      createIPFSReply(err, 'video.mp4', function (err, IPFSData) {
+        if (err) return console.log(err)
+        res.send(IPFSData)
+        res.end()
+      })
+
+      return
+    }
+
+    createIPFSReplyForAll(req.files, function (err, data) {
+      if (err) {
+        console.log(err)
+        res.send(JSON.stringify(err))
+        res.end()
+      } else {
+        console.log('data=' + data)
+        res.send(data)
+        res.end()
+      }
+    })
+  })
 })
 
 http.createServer(app).listen(httpPort, host, function () {

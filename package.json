@@ -13,7 +13,7 @@
   "author": "debugs",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.15.2",
+    "express": "^4.16.2",
     "ipfs-api": "^17.2.6",
     "multer": "^1.3.0"
   },
